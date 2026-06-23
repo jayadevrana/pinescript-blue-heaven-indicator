@@ -1,0 +1,438 @@
+// This Pine Script™ code is written by G.L GURJAR 
+//@version=5
+indicator("Blue Heaven Indicator", overlay = true)  // TTT : v3
+
+trsVot = 1.6
+
+len = input(20,"EMA Length")
+
+ema = ta.ema(close,len)
+
+
+
+INDICATOR_INPUTS = input(true,title="-----------------------------INDICATOR INPUTS---------------------------")
+
+ama = input.bool(true, "", inline = "5", group = "Indicator Properties")
+intSMA = input(19, "SMA", inline = "5", group = "Indicator Properties")
+hlc = input.bool(true, "PD_HLC", inline = "1", group = "Indicator Properties")
+pivoT = input.bool(false, "Pivot", inline = "1", group = "Indicator Properties")
+isHistory = input.bool(false, "Show Historical Pivot", inline = "1", group = "Indicator Properties")
+aDVt = input.bool(true, "Robot", inline = "5", group = "Indicator Properties")
+
+isNewDay = ta.change(time("D"))
+
+lb = ta.valuewhen(session.isfirstbar, bar_index, 0)
+oo = 0.0
+ooh = 0.0
+
+oo := low
+ooh := high
+
+var line gf = na
+
+for i = 0 to bar_index-lb
+    log.info(str.tostring(i) + ":" + str.tostring(low[i]))
+    if low[i] <= oo
+        oo:= low[i]
+
+    if high[i] >= ooh
+        ooh:= high[i]
+
+
+ma = ta.sma(close, intSMA)
+plot(ama ? ma : na, color=close>ma ? color.yellow : color.rgb(255, 0, 0), title = "SMA", editable = false) //close<ma ? color.red : color.blue, linewidth=1, title="MA")
+
+maCu = ta.crossunder(close, ma) and close < open //(close < open and close < ma and open > ma)
+maCo = ta.crossover(close, ma) and close > open //(close > open and close > ma and open < ma)
+
+var bool hH = false
+var bool lL = false
+
+if ooh > ooh[1]
+    hH := true
+if maCu
+    hH := false
+
+if oo < oo[1]
+    lL := true
+if maCo
+    lL := false
+
+bT = maCu[1] and close >= low[1] and hH[2] == true and aDVt and not session.isfirstbar
+sT = maCo[1] and close <= high[1] and lL[2] == true and aDVt and not session.isfirstbar
+
+bTt = maCu[1] and close < low[1] and hH[2] == true and aDVt and not session.isfirstbar
+sTt = maCo[1] and close > high[1] and lL[2] == true and aDVt and not session.isfirstbar
+
+ppC = input.color(color.white, "PP", group = "Pivot color", inline = "1")
+r_C = input.color(color.rgb(17, 0, 255), "R", group = "Pivot color", inline = "1")
+s_C = input.color(color.orange, "S", group = "Pivot color", inline = "1")
+H_C = input.color(color.rgb(52, 184, 0), "H", group = "Pivot color", inline = "2")
+L_C = input.color(color.rgb(52, 184, 0), "L", group = "Pivot color", inline = "2")
+C_C = input.color(color.rgb(255, 255, 255), "C", group = "Pivot color", inline = "2")
+
+[Open, High, Low, Close]= request.security (syminfo.tickerid, "D", [open, high, low, close])
+
+pp = math.avg(High, Low, Close)
+r1 = (2*pp) - Low
+r2 = pp + (High - Low)
+r3 = High + 2*(pp - Low)
+r4 = pp * 3 + (High - 3 * Low)
+r5 = pp * 4 + (High - 4 * Low)
+s1 = (2 * pp) - High
+s2 = pp - (High - Low)
+s3 = Low - 2*(High - pp)
+s4 = pp * 3 - (3 * High - Low)
+s5 = pp * 4 - (4 * High - Low)
+
+
+var barCount = 0
+count = ta.barssince(session.isfirstbar[1])
+if session.isfirstbar
+    barCount := count
+
+var line ppLine = na
+var line r1Line = na
+var line r2Line = na
+var line r3Line = na
+var line r4Line = na
+var line r5Line = na
+
+var line s1Line = na
+var line s2Line = na
+var line s3Line = na
+var line s4Line = na
+var line s5Line = na
+
+var label ppLabel = na
+var label r1Label = na
+var label r2Label = na
+var label r3Label = na
+var label r4Label = na
+var label r5Label = na
+
+var label s1Label = na
+var label s2Label = na
+var label s3Label = na
+var label s4Label = na
+var label s5Label = na
+
+/// 
+
+drawLabel(y, TEXT, COLOR)=>
+    label.new(x=bar_index, y=y, text=TEXT, color=color.orange, style=label.style_none,
+     size=size.normal, textcolor= COLOR)
+
+drawLine(y, COLOR)=>
+    line.new(x1=bar_index, y1=y, x2=bar_index+barCount+1, y2=y, color=COLOR, style=line.style_solid)
+    
+if isNewDay and timeframe.isintraday and pivoT
+    ppLine := drawLine(pp, ppC)
+    r1Line := drawLine(r1, r_C)
+    r2Line := drawLine(r2, r_C)
+    r3Line := drawLine(r3, r_C)
+    r4Line := drawLine(r4, r_C)
+    r5Line := drawLine(r5, r_C)
+    s1Line := drawLine(s1, s_C)
+    s2Line := drawLine(s2, s_C)
+    s3Line := drawLine(s3, s_C)
+    s4Line := drawLine(s4, s_C)
+    s5Line := drawLine(s5, s_C)
+
+    ppLabel := drawLabel(pp, "PP", color.orange)
+    r1Label := drawLabel(r1, "R1", color.lime)
+    r2Label := drawLabel(r2, "R2", color.lime)
+    r3Label := drawLabel(r3, "R3", color.lime)
+    r4Label := drawLabel(r4, "R4", color.lime)
+    r5Label := drawLabel(r5, "R5", color.lime)
+    s1Label := drawLabel(s1, "S1", color.red)
+    s2Label := drawLabel(s2, "S2", color.red)
+    s3Label := drawLabel(s3, "S3", color.red)
+    s4Label := drawLabel(s4, "S4", color.red)
+    s5Label := drawLabel(s5, "S5", color.red)
+
+    //// Deleting Historical Line & Label ///
+    if not isHistory
+        line.delete(ppLine[1])
+        line.delete(r1Line[1])
+        line.delete(r2Line[1])
+        line.delete(r3Line[1])
+        line.delete(r4Line[1])
+        line.delete(r5Line[1])
+
+        line.delete(s1Line[1])
+        line.delete(s2Line[1])
+        line.delete(s3Line[1])
+        line.delete(s4Line[1])
+        line.delete(s5Line[1])
+
+        label.delete(ppLabel[1])
+        label.delete(r1Label[1])
+        label.delete(r2Label[1])
+        label.delete(r3Label[1])
+        label.delete(r4Label[1])
+        label.delete(r5Label[1])
+
+        label.delete(s1Label[1])
+        label.delete(s2Label[1])
+        label.delete(s3Label[1])
+        label.delete(s4Label[1])
+        label.delete(s5Label[1])
+
+if timeframe.isintraday
+    line.set_x2(ppLine, bar_index)
+
+    line.set_x2(r1Line, bar_index)
+    line.set_x2(r2Line, bar_index)
+    line.set_x2(r3Line, bar_index)
+    line.set_x2(r4Line, bar_index)
+    line.set_x2(r5Line, bar_index)
+
+    line.set_x2(s1Line, bar_index)
+    line.set_x2(s2Line, bar_index)
+    line.set_x2(s3Line, bar_index)
+    line.set_x2(s4Line, bar_index)
+    line.set_x2(s5Line, bar_index)
+
+/////////////////////////////////////////////////////7276706000/////////////////////////////////////////////////////////////////////////////////////
+
+max = math.max(open, close)
+min = math.min(open, close)
+avgHam = hl2
+w_Upper = (high - max) <= (max - min)
+w_Lower = (min - low) <= (max - min) 
+
+bHc = min > avgHam
+sHc = max < avgHam
+
+Hammer = bHc and w_Upper
+inHammer = sHc and w_Lower
+
+beEng = close < open and close[1] > open[1] and open+trsVot >= close[1] and close <= open[1] and close >= ma 
+buEng = close > open and close[1] < open[1] and open-trsVot <= close[1] and close >= open[1] and close <= ma 
+
+haBE = close <= open and close[1] > open[1] and open - trsVot <= close[1] and close >= open[1] and low >= ma
+haBU = close >= open and close[1] < open[1] and open + trsVot >= close[1] and close <= open[1] and high <= ma
+
+barcolor(beEng or haBE ? color.yellow : buEng or haBU ? color.rgb(46, 0, 252) : na, title = "TRS Color")
+
+
+buy = (buEng[1] or haBU[1]) and close > close[1] and close > open and close > ema 
+sell = (beEng[1] or haBE[1]) and close < close[1] and close < open and close < ema 
+
+Stop = 1.00//input(1.0, title='StopLoss ')
+
+ProfitPerc = 1.00//input(defval=1.0, title='TARGET ')
+
+
+long_short = 0
+long_last = buy and (nz(long_short[1]) == 0 or nz(long_short[1]) == -1)
+short_last = sell and (nz(long_short[1]) == 0 or nz(long_short[1]) == 1)
+long_short := long_last ? 1 : short_last ? -1 : long_short[1]
+
+
+TRAILING_METHOD = input.string('POINTS',"TRAILING METHOD",options = ['POINTS','PERCENTAGE'])
+
+trailPerc = input.float(title='Trailing Stop', minval=0.0, step=0.1, defval=5)  //* 0.01
+
+//detect what was last signal (long or short)
+// long_short = 0
+// long_last = buy and (nz(long_short[1]) == 0 or nz(long_short[1]) == -1)
+// short_last = sell and (nz(long_short[1]) == 0 or nz(long_short[1]) == 1)
+// long_short := long_last ? 1 : short_last ? -1 : long_short[1]
+trailPerc1 = 0.00
+trailPerc2 = 0.00
+
+
+if TRAILING_METHOD == 'POINTS' 
+    trailPerc1 := close -  trailPerc
+    trailPerc2 := close +  trailPerc
+
+if TRAILING_METHOD == 'PERCENTAGE'
+    trailPerc1 := close * (1 - trailPerc/100)
+    trailPerc2 := close * (1 + trailPerc/100)
+
+//calculate tsl position
+longStopPrice = 0.0
+shortStopPrice = 0.0
+longStopPrice := if long_short == 1
+    stopValue = trailPerc1// (1 - trailPerc))
+    math.max(stopValue, longStopPrice[1])
+else
+    0
+shortStopPrice := if long_short == -1
+    stopValue = trailPerc2  //* (1 + trailPerc)
+    math.min(stopValue, shortStopPrice[1])
+else
+    999999
+
+//plot tsl
+plot(long_short == 1 ? longStopPrice : na, style=plot.style_linebr, color=color.new(color.lime, 0), linewidth=1, title='Long Trailing Stop') 
+plot(long_short == -1 ? shortStopPrice : na, style=plot.style_linebr, color=color.new(color.red, 0), linewidth=1, title='Short Trailing Stop')  
+
+//remove first bar for SL/TP (you can't enter a trade at bar close THEN hit your SL on that same bar)
+longBar1 = ta.barssince(long_last)
+longBar2 = longBar1 >= 1 ? true : false
+shortBar1 = ta.barssince(short_last)
+shortBar2 = shortBar1 >= 1 ? true : false
+
+//check for TSL hit during a bar
+longTSLhit = long_short == 1 and longBar2 and low < longStopPrice[1]
+plotshape(longTSLhit, style=shape.labelup, location=location.belowbar, color=color.new(color.gray, 0), size=size.tiny, title='Long TSL', text='Long TSL', textcolor=color.new(color.white, 0))  //4
+shortTSLhit = long_short == -1 and shortBar2 and high > shortStopPrice[1]
+plotshape(shortTSLhit, style=shape.labeldown, location=location.abovebar, color=color.new(color.gray, 0), size=size.tiny, title='Short TSL', text='Short TSL', textcolor=color.new(color.white, 0))  //5
+
+//reset long_short if SL/TP hit during bar
+long_short := (long_short == 1 or long_short == 0) and longBar2 and longTSLhit ? 0 : (long_short == -1 or long_short == 0) and shortBar2 and shortTSLhit ? 0 : long_short
+//
+
+//calculate if TSL has changed from last bar
+longDiff = long_short == 1 and longBar2 and longStopPrice != longStopPrice[1] ? true : false
+shortDiff = long_short == -1 and shortBar2 and shortStopPrice != shortStopPrice[1] ? true : false
+
+//set Alerts for Open Long/Short, SL Hit, TP Hit
+// alertcondition(condition=long_last, title='Long Alarm', message='Open a Long Trade @ ${{close}}')
+// alertcondition(condition=short_last, title='Short Alarm', message='Open a Short Trade @ ${{close}}')
+
+// alertcondition(condition=longSLhit, title='Long Trailing Stop', message='Long TSL Hit @ ${{plot_2}}')
+// alertcondition(condition=shortSLhit, title='Short Trailing Stop', message='Short TSL Hit @ ${{plot_3}}')
+
+// alertcondition(condition=longDiff, title='Long TSL Move', message='Move TSL to ${{plot_2}}')
+// alertcondition(condition=shortDiff, title='Short TSL Move', message='Move TSL to ${{plot_3}}')
+
+
+// plotshape(long ? buy : na,color=color.new(color.green, 0), style=shape.labelup, text='Buy', textcolor=color.new(color.white, 0), location=location.belowbar, size=size.small)
+// plotshape(short ? sell : na, color=color.new(color.red, 0), style=shape.labeldown, text='Sell', textcolor=color.new(color.white, 0), location=location.abovebar, size=size.small)
+
+// plotshape(buy, color=color.new(color.green, 0), style=shape.labelup, text='Buy', textcolor=color.new(color.white, 0), location=location.belowbar)
+// plotshape(sell, color=color.new(color.red, 0), style=shape.labeldown, text='Sell', textcolor=color.new(color.white, 0), location=location.abovebar)
+
+
+long_entered = false
+long_entered := long_entered[1]
+
+short_entered = false
+short_entered := short_entered[1]
+
+input_price = close
+
+longPrice = ta.valuewhen(buy and not long_entered, close, 0)
+
+
+shortPrice = ta.valuewhen(sell and not short_entered, input_price, 0)
+
+// if use_sl
+//     longPrice := ta.valuewhen(buy1, entry_p, 0)
+//     shortPrice := ta.valuewhen(sell1, entry_p, 0)
+
+
+
+longStop = longPrice - Stop
+shortStop = shortPrice + Stop
+
+longTake = longPrice + ProfitPerc
+shortTake = shortPrice - ProfitPerc
+
+
+use_rsik_reward = true
+
+
+
+risk = input(1,"Risk:Reward")
+
+
+ 
+if use_rsik_reward
+    longStop := ta.valuewhen(buy and not long_entered,low,0)    //longPrice * (1 - Stop)
+    shortStop := ta.valuewhen(sell and not short_entered,high,0)//shortPrice * (1 + Stop)
+    longTake := longPrice + (longPrice - longStop)*risk//* (1 + ProfitPerc)
+    shortTake := shortPrice - (shortStop - shortPrice)*risk//* (1 - ProfitPerc)
+
+
+
+
+
+plot(long_short == 1 ? longStop : na, style=plot.style_linebr, color=color.new(color.red, 0), linewidth=1, title='Long Fixed SL')
+plot(long_short == -1 ? shortStop : na, style=plot.style_linebr, color=color.new(color.red, 0), linewidth=1, title='Short Fixed SL')
+plot(long_short == 1 ? longTake : na, style=plot.style_linebr, color=color.new(color.navy, 0), linewidth=1, title='Long Fixed TP')
+plot(long_short == -1 ? shortTake : na, style=plot.style_linebr, color=color.new(color.navy, 0), linewidth=1, title='Short Fixed TP')
+
+
+// longBar1 = ta.barssince(long_last)
+// longBar2 = longBar1 >= 1 ? true : false
+// shortBar1 = ta.barssince(short_last)
+// shortBar2 = shortBar1 >= 1 ? true : false
+
+longSLhit = long_short == 1 and longBar2 and low < longStop
+// The Trailing Stop Code
+ 
+//alertcondition(condition=long_last, title="Long Alarm", message='Open a Long Trade @ ${{close}}')
+//alertcondition(condition=short_last, title="Short Alarm", message='Open a Short Trade @ ${{close}}')
+ 
+// alertcondition(condition=longSLhit, title="Long Trailing Stop", message='Long TSL Hit @ ${{plot_2}}')
+// alertcondition(condition=shortSLhit, title="Short Trailing Stop", message='Short TSL Hit @ ${{plot_3}}')
+ 
+
+
+plotshape(longSLhit and not(sell and not short_entered and long_entered), style=shape.labelup, location=location.belowbar, color=color.new(color.gray, 0), size=size.tiny, title='Stop Loss', text='Long SL', textcolor=color.new(color.white, 0))
+shortSLhit = long_short == -1 and shortBar2 and high > shortStop
+
+
+
+
+plotshape(shortSLhit and not(buy and not long_entered and short_entered), style=shape.labeldown, location=location.abovebar, color=color.new(color.gray, 0), size=size.tiny, title='Stop Loss', text='Short SL', textcolor=color.new(color.white, 0))
+
+
+longTPhit = long_short == 1 and longBar2 and high > longTake
+plotshape(longTPhit, style=shape.labeldown, location=location.abovebar, color=color.new(color.navy, 0), size=size.tiny, title='Target', text='Long TP', textcolor=color.new(color.white, 0))
+shortTPhit = long_short == -1 and shortBar2 and low < shortTake
+plotshape(shortTPhit, style=shape.labelup, location=location.belowbar, color=color.new(color.navy, 0), size=size.tiny, title='Target', text='Short TP', textcolor=color.new(color.white, 0))
+
+long_short := (long_short == 1 or long_short == 0) and longBar2 and (longSLhit or longTPhit) ? 0 : (long_short == -1 or long_short == 0) and shortBar2 and (shortSLhit or shortTPhit) ? 0 : long_short
+
+// buffer = input(10.0)
+
+plotshape(buy and not long_entered, color=color.new(color.green, 0), style=shape.labelup, text='Buy', textcolor=color.new(color.white, 0), location=location.belowbar)
+plotshape(sell and not short_entered, color=color.new(color.red, 0), style=shape.labeldown, text='Sell', textcolor=color.new(color.white, 0), location=location.abovebar)
+
+
+symbol = input("BTCUSDm")
+
+qn = input(0.1)
+
+buy_alert = '[{"CLOSE":"CLOSE","TS":"'+symbol+'","AT":"MT4ANDMT5"},{"TS":"'+symbol+'","TT":"BUY","Q":"'+str.tostring(qn)+'","OT":"MARKET","AT":"MT4ANDMT5"}]'
+sell_alert =  '[{"CLOSE":"CLOSE","TS":"'+symbol+'","AT":"MT4ANDMT5"},{"TS":"'+symbol+'","TT":"SELL","Q":"'+str.tostring(qn)+'","OT":"MARKET","AT":"MT4ANDMT5"}]'
+exit_alert = '[{"CLOSE":"CLOSE","TS":"'+symbol+'","AT":"MT4ANDMT5"}]'
+
+
+if buy and not long_entered
+    alert(buy_alert,alert.freq_once_per_bar_close)
+
+if sell and not short_entered
+    alert(sell_alert,alert.freq_once_per_bar_close)
+// alertcondition(condition=buy and  not(long_entered)  and (short_entered), title="Fully Algo Buy")
+// alertcondition(condition=sell and  not(short_entered)  and (long_entered), title="Fully Algo sell")
+
+
+if long_last
+    long_entered := true
+    short_entered := false
+    short_entered
+if short_last
+    short_entered := true
+    long_entered := false
+    long_entered
+
+
+if longSLhit or longTPhit or longTSLhit
+    long_entered := false
+    long_entered
+
+if shortSLhit or shortTPhit or shortTSLhit
+    short_entered := false
+    short_entered
+
+exit = (longSLhit or shortSLhit or longTPhit or shortTPhit or longTSLhit or shortTSLhit)
+
+if shortSLhit or longSLhit
+    alert(exit_alert,alert.freq_once_per_bar)
